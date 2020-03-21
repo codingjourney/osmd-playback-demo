@@ -4,11 +4,6 @@
     v-model="drawer"
     app>
     <v-list>
-        <v-list-tile>
-          <v-list-tile-title class="title">
-            Playback settings
-          </v-list-tile-title>
-        </v-list-tile>
         <PlaybackSidebar :playbackEngine="pbEngine" />
       </v-list>
   </v-navigation-drawer>
@@ -17,7 +12,7 @@
   </v-toolbar>
   <v-content>
     <v-container fluid>
-      <v-select :items="scores" label="Select Score" @change="scoreChanged" />
+      <v-select :items="scores" label="Lied auswählen" @change="scoreChanged" />
       <Score @osmdInit="osmdInit" @scoreLoaded="scoreLoaded"  :score="selectedScore"/>
     </v-container>
   </v-content>
@@ -59,8 +54,7 @@ export default {
     osmdInit(osmd) {
       console.log("OSMD init");
       this.osmd = osmd;
-      this.selectedScore =
-        "https://opensheetmusicdisplay.github.io/demo/sheets/MuzioClementi_SonatinaOpus36No3_Part1.xml";
+      this.selectedScore = "Im_Fruehling.xml";
     },
     scoreLoaded() {
       console.log("Score loaded");

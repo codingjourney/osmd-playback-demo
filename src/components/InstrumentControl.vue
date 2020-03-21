@@ -2,7 +2,7 @@
   <div>
     <h3>{{ instrument.name }}</h3>
     <div v-for="(voice, index) in instrument.voices" :key="index">
-      <h4>{{ voice.name }}</h4>
+      <!-- h4>{{ voice.name }}</h4 -->
       <VolumeSlider :volume.sync="voice.volume" />
     </div>
   </div>
