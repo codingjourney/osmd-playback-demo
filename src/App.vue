@@ -1,14 +1,43 @@
 <template>
 <v-app id="app">
-  <v-navigation-drawer 
+  <v-navigation-drawer
     v-model="drawer"
     app>
     <v-list>
-        <PlaybackSidebar :playbackEngine="pbEngine" />
-      </v-list>
+      <PlaybackSidebar :playbackEngine="pbEngine" />
+    </v-list>
   </v-navigation-drawer>
   <v-toolbar app>
-        <v-toolbar-side-icon @click="drawer = !drawer"></v-toolbar-side-icon>
+    <v-toolbar-side-icon @click="drawer = !drawer">
+      <v-icon>keyboard_arrow_{{drawer ? "left" : "right"}}</v-icon>
+    </v-toolbar-side-icon>
+    <!-- TODO move the following components back into PlaybackControls -->
+    <v-slider
+      v-if="this.pbEngine && this.pbEngine.iterationSteps > 0"
+      :value="this.pbEngine.currentIterationStep"
+      :min="0"
+      :max="this.pbEngine.iterationSteps"
+      :step="1"
+      @input="val => this.pbEngine.jumpToStep(val)"
+      class="progress-slider"
+    ></v-slider>
+    <v-btn
+      icon
+      @click="
+        pbEngine.state === 'PAUSED'
+          ? pbEngine.resume()
+          : pbEngine.play()
+      "
+      v-if="pbEngine.state !== 'PLAYING'"
+    >
+      <v-icon dark>play_arrow</v-icon>
+    </v-btn>
+    <v-btn v-else icon @click="pbEngine.pause()">
+      <v-icon dark>pause</v-icon>
+    </v-btn>
+    <v-btn icon @click="pbEngine.stop()">
+      <v-icon dark>stop</v-icon>
+    </v-btn>
   </v-toolbar>
   <v-content>
     <v-container fluid>
@@ -16,9 +45,6 @@
       <Score @osmdInit="osmdInit" @scoreLoaded="scoreLoaded"  :score="selectedScore"/>
     </v-container>
   </v-content>
-  <PlaybackControls 
-    :playbackEngine="pbEngine"
-    :scoreTitle="scoreTitle" />
 </v-app>
 </template>
 
@@ -76,4 +102,7 @@ export default {
   -moz-osx-font-smoothing: grayscale;
   color: #2c3e50;
 }
+// centers progress slider vertically within the toolbar
+.progress-slider .v-input__control { flex-direction: inherit; flex-wrap: inherit }
+.progress-slider .v-input__slot { margin-bottom: inherit }
 </style>
