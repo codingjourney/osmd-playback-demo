@@ -9,8 +9,8 @@ const playbackStates = {
 };
 
 export default class PlaybackEngine {
-  constructor() {
-    this.ac = new AudioContext();
+  constructor(audioContext) {
+    this.ac = audioContext || new AudioContext();
     this.ac.suspend();
     this.defaultBpm = 100;
 
@@ -47,8 +47,13 @@ export default class PlaybackEngine {
   }
 
   loadScore(osmd) {
-    this.sheet = osmd.sheet;
-    this.cursor = osmd.cursor;
+    init(osmd.sheet, osmd.cursor)
+  }
+
+  init(sheet, cursor, instrument) {
+    this.sheet = sheet;
+    this.cursor = cursor;
+    this.playbackSettings.instrument = instrument
     this.denominator = this.sheet.playbackSettings.rhythm.denominator;
     if (this.sheet.HasBPMInfo) {
       this.setBpm(this.sheet.DefaultStartTempoInBpm);
