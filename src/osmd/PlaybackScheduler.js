@@ -117,12 +117,13 @@ export default class PlaybackScheduler {
       (nextTick - this.currentTick) * this.tickDuration <= this._schedulePeriod
     ) {
       let step = this.stepQueue.steps[this.stepQueueIndex];
+      let isLastStep = this.stepQueueIndex === this.stepQueue.steps.length - 1
 
       let timeToTick = (step.tick - this.currentTick) * this.tickDuration;
       if (timeToTick < 0) timeToTick = 0;
 
       this.scheduledTicks.add(step.tick);
-      this.noteSchedulingCallback(timeToTick / 1000, step.notes);
+      this.noteSchedulingCallback(timeToTick / 1000, step.notes, isLastStep);
 
       this.stepQueueIndex++;
       nextTick = this.stepQueue.steps[this.stepQueueIndex]

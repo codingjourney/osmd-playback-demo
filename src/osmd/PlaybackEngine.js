@@ -75,8 +75,9 @@ export default class PlaybackEngine {
 
     this.playbackSettings.volumes.instruments = instruments;
 
-    this.scheduler = new PlaybackScheduler(this.denominator, this.wholeNoteLength, this.ac, (delay, notes) =>
-      this._notePlaybackCallback(delay, notes)
+    this.scheduler = new PlaybackScheduler(
+      this.denominator, this.wholeNoteLength, this.ac,
+      (delay, notes, finishing) => this._notePlaybackCallback(delay, notes, finishing)
     );
     this._countAndSetIterationSteps();
   }
@@ -158,7 +159,7 @@ export default class PlaybackEngine {
     this.cursor.reset();
   }
 
-  _notePlaybackCallback(audioDelay, notes) {
+  _notePlaybackCallback(audioDelay, notes, finishing) {
     if (this.state !== playbackStates.PLAYING) return;
     let scheduledNotes = [];
 
@@ -174,7 +175,8 @@ export default class PlaybackEngine {
       });
     }
 
-    this.playbackSettings.instrument.schedule(this.ac.currentTime + audioDelay, scheduledNotes);
+    let events = this.playbackSettings.instrument.schedule(this.ac.currentTime + audioDelay, scheduledNotes);
+    if (finishing) this._doAfter(events, () => this.stop());
 
     this.timeoutHandles.push(
       setTimeout(() => this._iterationCallback(), Math.max(0, audioDelay * 1000 - 40))
@@ -212,5 +214,15 @@ export default class PlaybackEngine {
     let playbackInstrument = this.playbackSettings.volumes.instruments.find(i => i.id === instrument.Id);
     let playbackVoice = playbackInstrument.voices.find(v => v.id === note.voiceEntry.ParentVoice.VoiceId);
     return playbackVoice.volume;
+  }
+
+  _doAfter(events, callback) {
+    let pending = events.length;
+    this.playbackSettings.instrument.onended = (when, obj, opts) => {
+      if (events.indexOf(opts) > -1 && --pending === 0) {
+        this.playbackSettings.instrument.onended = null;
+        callback();
+      }
+    }
   }
 }
