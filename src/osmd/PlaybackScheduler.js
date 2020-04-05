@@ -23,9 +23,8 @@ export default class PlaybackScheduler {
 
   _loaderFutureTicks = new Set();
 
-  constructor(denominator, wholeNoteLength, audioContext, noteSchedulingCallback, iterationCallback) {
+  constructor(denominator, wholeNoteLength, audioContext, noteSchedulingCallback) {
     this.noteSchedulingCallback = noteSchedulingCallback;
-    this.iterationCallback = iterationCallback;
     this.denominator = denominator;
     this.wholeNoteLength = wholeNoteLength;
     this.audioContext = audioContext;
@@ -82,7 +81,7 @@ export default class PlaybackScheduler {
     this.currentTick = 0;
     this.currentTickTimestamp = 0;
     this.stepQueueIndex = 0;
-    clearInterval(this._scheduleInterval);
+    clearInterval(this._schedulerInterval);
     this._schedulerInterval = null;
   }
 
@@ -115,8 +114,7 @@ export default class PlaybackScheduler {
       : undefined;
     while (
       nextTick &&
-      this.currentTickTimestamp + (nextTick - this.currentTick) * this.tickDuration <=
-        this.currentTickTimestamp + this._schedulePeriod
+      (nextTick - this.currentTick) * this.tickDuration <= this._schedulePeriod
     ) {
       let step = this.stepQueue.steps[this.stepQueueIndex];
 
