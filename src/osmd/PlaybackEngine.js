@@ -47,7 +47,7 @@ export default class PlaybackEngine {
   }
 
   loadScore(osmd) {
-    init(osmd.sheet, osmd.cursor)
+    this.init(osmd.sheet, osmd.cursor)
   }
 
   init(sheet, cursor, instrument) {
