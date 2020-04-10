@@ -164,12 +164,13 @@ export default class PlaybackEngine {
     let scheduledNotes = [];
 
     for (let note of notes) {
+      let notePitch = this._getNotePitch(note);
       let noteDuration = this._getNoteDuration(note);
       if (noteDuration === 0) continue;
       let noteVolume = this._getNoteVolume(note);
 
       scheduledNotes.push({
-        note: note.halfTone,
+        note: notePitch,
         duration: noteDuration / 1000,
         gain: noteVolume
       });
@@ -195,6 +196,10 @@ export default class PlaybackEngine {
     if (this.state !== playbackStates.PLAYING) return;
     if (this.currentIterationStep > 0) this.cursor.next();
     ++this.currentIterationStep;
+  }
+
+  _getNotePitch(note) {
+    return note.halfTone + 12; // work-around for OSMD issue #715
   }
 
   _getNoteDuration(note) {
