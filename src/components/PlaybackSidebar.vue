@@ -3,7 +3,7 @@
     <div class="sidebar-content">
       <h2 class="mt-5">Anleitung</h2>
       <p>
-        Lied auswählen, Einstellungen anpassen, abspielen.
+        Lied auswählen, Stimmen anpassen, abspielen, wiederholen :-)
       </p>
       <h2>
         Tempo
@@ -12,24 +12,17 @@
         }}
       </h2>
       <BpmSlider
-        :bpm="playbackEngine.playbackSettings.bpm"
+        :bpm="playbackEngine.bpm"
         @update:bpm="val => playbackEngine.setBpm(val)"
         :disabled="bpmDisabled"
       ></BpmSlider>
-      <h2>Lautstärke</h2>
-      <InstrumentControl
-        v-for="instrument in instrumentLevels"
-        :key="instrument.id"
-        :playbackEngine="playbackEngine"
-        :instrument="instrument"
+      <h2>Stimmen</h2>
+      <PartControl
+        v-for="part in parts"
+        :key="part.id"
+        :part="part"
+        :voiceBank="playbackEngine.voiceBank"
       />
-      <h2>Instrument</h2>
-      <v-select
-        class="mb-4"
-        value="acoustic_grand_piano"
-        :items="instruments"
-        @change="i => playbackEngine.loadInstrument(i)"
-      ></v-select>
       <h2 class="mt-5">Info</h2>
       <p>
         Basiert auf 
@@ -41,14 +34,14 @@
 </template>
 
 <script>
-import InstrumentControl from "./InstrumentControl.vue";
+import PartControl from "./PartControl.vue";
 import BpmSlider from "./BpmSlider";
 import instruments from "../instruments";
 
 export default {
   components: {
-    InstrumentControl,
-    BpmSlider
+    BpmSlider,
+    PartControl
   },
   props: {
     playbackEngine: Object
@@ -59,8 +52,8 @@ export default {
     };
   },
   computed: {
-    instrumentLevels() {
-      return this.playbackEngine.playbackSettings.volumes.instruments;
+    parts() {
+      return this.playbackEngine.voiceBank.parts;
     },
     bpmDisabled() {
       return this.playbackEngine.state === "PLAYING";
