@@ -17,7 +17,7 @@ export default class PlaybackEngine {
     this.cursor = null;
     this.sheet = null;
     this.iterator = null;
-    this.denominator = null;
+    this.denominator = null;  // beats per whole note
 
     this.scheduler = null;
 
@@ -32,7 +32,7 @@ export default class PlaybackEngine {
     this.state = playbackStates.INIT;
   }
 
-  get wholeNoteLength() {
+  get wholeNoteLength() { // milliseconds
     return Math.round((60 / this.bpm) * this.denominator * 1000);
   }
 
@@ -64,7 +64,7 @@ export default class PlaybackEngine {
     this.cursor.show();
 
     this.state = playbackStates.PLAYING;
-    this.scheduler.start();
+    this.scheduler.start(0, this.iterationSteps, false);
   }
 
   async stop() {

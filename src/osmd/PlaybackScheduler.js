@@ -1,27 +1,28 @@
 import StepQueue from './StepQueue';
 
 export default class PlaybackScheduler {
-  denominator;
-  wholeNoteLength;
+  denominator;     // beats per whole note
+  wholeNoteLength; // milliseconds
   stepQueue = new StepQueue();
   stepQueueIndex = 0;
-  scheduledTicks = new Set();
+  scheduledTicks = new Set(); // timing positions whose notes have already been scheduled
+                              // but which haven't yet elapsed
 
-  currentTick = 0;
-  currentTickTimestamp = 0;
+  currentTick = 0; // tick count from start of playback to most recent scheduling invocation
+  currentTickTimestamp = 0; // AC time at most recent scheduling invocation
 
-  _audioContextStartTime = 0;
+  _audioContextStartTime = 0; // AC time at start of playback, seconds
 
   _schedulerInterval = null;
-  _scheduleInterval = 200; // Milliseconds
-  _schedulePeriod = 1500;
-  _tickDenominator = 1024;
+  _scheduleInterval = 200; // periodicity of scheduling invocations, milliseconds
+  _schedulePeriod = 1500;  // scheduling horizon, milliseconds
+  _tickDenominator = 1024; // ticks per whole note
 
   _lastTickOffset = 300; // Hack to get the initial notes play better
 
   playing = false;
 
-  _loaderFutureTicks = new Set();
+  _loaderFutureTicks = new Set(); // timing positions for notes yet to be loaded (see loadNotes())
 
   constructor(denominator, wholeNoteLength, audioContext, noteSchedulingCallback) {
     this.noteSchedulingCallback = noteSchedulingCallback;
@@ -30,22 +31,22 @@ export default class PlaybackScheduler {
     this.audioContext = audioContext;
   }
 
-  get schedulePeriodTicks() {
+  get schedulePeriodTicks() { // scheduling horizon, ticks
     return this._schedulePeriod / this.tickDuration;
   }
 
-  get audioContextTime() {
+  get audioContextTime() { // AC time elapsed since start of playback, milliseconds
     if (!this.audioContext) return 0;
     return (this.audioContext.currentTime - this._audioContextStartTime) * 1000;
   }
 
-  get _calculatedTick() {
+  get _calculatedTick() { // tick count since most recent scheduling invocation added to its tick count
     return (
       this.currentTick + Math.round((this.audioContextTime - this.currentTickTimestamp) / this.tickDuration)
     );
   }
 
-  get tickDuration() {
+  get tickDuration() { // milliseconds (effectively scheduling precision)
     return this.wholeNoteLength / this._tickDenominator;
   }
 
@@ -86,6 +87,16 @@ export default class PlaybackScheduler {
   }
 
   loadNotes(currentVoiceEntries) {
+    /*
+     * Voice entries contain no start time information which makes
+     * placing them on the timeline a bit tricky. The algorithm used here 
+     * relies on the sequence being perfectly dense, i.e. every note or rest
+     * is immediately followed by another one (think of a voice as a sequence
+     * of symbols, like characters in a string). As we process voice entries,
+     * we keep track of all upcoming end-times. The earliest end-time will be
+     * the start-time when this method is next invoked. The list of upcoming
+     * end-times is called _loaderFutureTicks.
+     */
     let thisTick = this._lastTickOffset;
     if (this.stepQueue.steps.length > 0) {
       thisTick = Math.min(...this._loaderFutureTicks);
