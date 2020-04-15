@@ -27,7 +27,9 @@ describe('PlaybackEngine state transitions', () => {
     expect(engine.state).toBe('INIT')
   })
   it('INIT    -> PLAYING', async () => {
-    engine.init(sheet, new FakeCursor(), new FakeInstrument())
+    engine.init(sheet, new FakeCursor())
+    let vb = engine.voiceBank
+    vb.instruments[vb.DEFAULT_INSTRUMENT_ID] = new FakeInstrument();
     await engine.play()
     expect(engine.state).toBe('PLAYING')
   })
