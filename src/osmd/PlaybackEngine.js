@@ -1,4 +1,4 @@
-import PlaybackScheduler from './PlaybackScheduler';
+import LazyPlaybackScheduler from './LazyPlaybackScheduler';
 import VoiceBank from './VoiceBank';
 
 const playbackStates = {
@@ -32,8 +32,8 @@ export default class PlaybackEngine {
     this.state = playbackStates.INIT;
   }
 
-  get wholeNoteLength() { // milliseconds
-    return Math.round((60 / this.bpm) * this.denominator * 1000);
+  get wholeNoteLength() { // seconds
+    return (60 / this.bpm) * this.denominator;
   }
 
   loadScore(osmd) {
@@ -50,7 +50,7 @@ export default class PlaybackEngine {
 
     this.voiceBank.init(sheet);
 
-    this.scheduler = new PlaybackScheduler(
+    this.scheduler = new LazyPlaybackScheduler(
       this.denominator, this.wholeNoteLength, this.ac,
       (delay, notes, finishing) => this._notePlaybackCallback(delay, notes, finishing)
     );
@@ -124,10 +124,11 @@ export default class PlaybackEngine {
     this.cursor.reset();
     let steps = 0;
     while (!this.cursor.iterator.endReached) {
-      if (this.cursor.iterator.currentVoiceEntries)
+      if (this.cursor.iterator.currentVoiceEntries) {
         this.scheduler.loadNotes(this.cursor.iterator.currentVoiceEntries);
+        ++steps;
+      }
       this.cursor.next();
-      ++steps;
     }
     this.iterationSteps = steps;
     this.cursor.reset();
@@ -173,6 +174,6 @@ export default class PlaybackEngine {
         duration = 0;
       }
     }
-    return duration / 1000; // seconds instead of ms
+    return duration;
   }
 }
