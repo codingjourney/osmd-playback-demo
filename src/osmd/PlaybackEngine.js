@@ -55,7 +55,8 @@ export default class PlaybackEngine {
 
     this.scheduler = new LazyPlaybackScheduler(
       this.denominator, this.wholeNoteLength, this.ac,
-      (delay, notes, finishing) => this._notePlaybackCallback(delay, notes, finishing)
+      (delay, notes, stepIndex, stopping) =>
+        this._notePlaybackCallback(delay, notes, stepIndex, stopping)
     );
     this._countAndSetIterationSteps();
   }
