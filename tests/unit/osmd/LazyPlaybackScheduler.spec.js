@@ -4,13 +4,8 @@ import { IXmlElement, MusicSheetReader, Pitch } from 'opensheetmusicdisplay'
 jest.useFakeTimers()
 const audioContext = { currentTime: 0 }
 const playback = jest.fn()
-const scheduler = new LazyPlaybackScheduler(4, 1, audioContext, playback)
-const [sheet, sheetSteps] = load('test02.xml')
+const [scheduler, sheetSteps] = init('test02.xml', audioContext, playback)
 // note durations: 3/8, 1/8, 1/8, 1/8 rest, 1/8, 1/8 rest, 8/8
-
-scheduler.INIT_DELAY = 0
-scheduler.CLOCK_INTERVAL = 0.1
-scheduler.SCHEDULED_INTERVAL = 0.2
 
 describe('initial state', () => {
   it('has one more step than the sheet', () => {
@@ -28,7 +23,7 @@ describe('complete playback', () => {
       /* startPosition */ 0,
       /* endPosition   */ sheetSteps,
       /* loop          */ false)
-    expect(scheduledSteps(playback.mock.calls)).toBe('C5 in 0s')
+    expect(scheduledSteps()).toBe('C5 in 0s')
     expect(setInterval).toHaveBeenCalled()
     expect(setInterval.mock.calls[0][1]).toBe(scheduler.CLOCK_INTERVAL * 1000);
   })
@@ -52,10 +47,10 @@ describe('complete playback', () => {
 
 describe('accelerated playback', () => {
   it('schedules steps 0 and 1 right away', () => {
-    reset()
+    reset(scheduler)
     scheduler.wholeNoteLength = 0.4 // steps: 0, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4
     scheduler.start(0, sheetSteps, false)
-    expect(scheduledSteps(playback.mock.calls)).toBe('C5 in 0s; D5 in 0.15s')
+    expect(scheduledSteps()).toBe('C5 in 0s; D5 in 0.15s')
   })
   it(`schedules steps with less than ${scheduler.SCHEDULED_INTERVAL}s lead`, () => {
     expect(tick().result).toBe('0.1s: E5 in 0.1s; R in 0.15s')
@@ -66,10 +61,10 @@ describe('accelerated playback', () => {
 
 describe('partial playback - steps 1 through 4', () => {
   it('starts with step 1 (startPosition)', () => {
-    reset()
+    reset(scheduler)
     scheduler.wholeNoteLength = 1 // steps: 0, 0.375, 0.5, 0.625, 0.75, 0.875, 1
     scheduler.start(1, 5, false)
-    expect(scheduledSteps(playback.mock.calls)).toBe('D5 in 0s; E5 in 0.125s')
+    expect(scheduledSteps()).toBe('D5 in 0s; E5 in 0.125s')
   })
   it('stops with step 4 (endPosition - 1)', () => {
     expect(tick().result).toBe('0.1s: R in 0.15s')
@@ -79,7 +74,7 @@ describe('partial playback - steps 1 through 4', () => {
 
 describe('pause and resume', () => {
   it('shuts down the clock on pause', () => {
-    reset()
+    reset(scheduler)
     scheduler.wholeNoteLength = 0.8 // steps: 0, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8
     scheduler.start(0, sheetSteps, false)
     expect(tick().result).toBe('0.1s: -')
@@ -92,7 +87,7 @@ describe('pause and resume', () => {
   it('resumes playback right after the last scheduled step', () => {
     playback.mockClear()
     scheduler.resume()
-    expect(scheduledSteps(playback.mock.calls)).toBe('-') // still at 0.4; 0.5 is already scheduled
+    expect(scheduledSteps()).toBe('-') // still at 0.4; 0.5 is already scheduled
     expect(tick().result).toBe('0.5s: C5 in 0.1s')
     expect(tick().result).toBe('0.6s: R in 0.1s')
     expect(tick().result).toBe('0.7s: G5+G4+E4 in 0.1s and STOP')
@@ -101,10 +96,10 @@ describe('pause and resume', () => {
 
 describe('looping', () => {
   it('starts over at the end', () => {
-    reset()
+    reset(scheduler)
     scheduler.wholeNoteLength = 0.4 // steps: 0, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4
     scheduler.start(0, sheetSteps, true)
-    expect(scheduledSteps(playback.mock.calls)).toBe('C5 in 0s; D5 in 0.15s')
+    expect(scheduledSteps()).toBe('C5 in 0s; D5 in 0.15s')
     for (let i = 0; i < 10; i++) {
       expect(tick().result).toBe(`${round(0.8 * i + 0.1)}s: E5 in 0.1s; R in 0.15s`)
       expect(tick().result).toBe(`${round(0.8 * i + 0.2)}s: C5 in 0.1s; R in 0.15s`)
@@ -118,9 +113,31 @@ describe('looping', () => {
   })
 })
 
+describe('handling of interleaving notes', () => {
+  it('schedules based on positions rather than note lengths', () => {
+    const [scheduler, sheetSteps] = init('test03.xml', audioContext, playback)
+    reset(scheduler)
+    scheduler.wholeNoteLength = 0.4
+    // voice 1 steps: 0, 0.1, 0.3, 0.4 (tie), 0.5, 0.6
+    // voice 2 steps: 0, 0.2, 0.4, 0.6
+    scheduler.start(0, sheetSteps, false)
+    expect(scheduledSteps()).toBe('C5+E4 in 0s; D5 in 0.1s')
+    expect(tick().result).toBe('0.1s: F4 in 0.1s')
+    expect(tick().result).toBe('0.2s: E5 in 0.1s')
+    expect(tick().result).toBe('0.3s: E5+G4 in 0.1s')
+    expect(tick().result).toBe('0.4s: R in 0.1s')
+    expect(tick().result).toBe('0.5s: C5+E4 in 0.1s and STOP')
+  })
+})
+
 // describe('change of tempo during playback', () => {})
 
-function load(testFile) {
+function init(testFile, audioContext, playback) {
+  const scheduler = new LazyPlaybackScheduler(4, 1, audioContext, playback)
+  scheduler.INIT_DELAY = 0
+  scheduler.CLOCK_INTERVAL = 0.1
+  scheduler.SCHEDULED_INTERVAL = 0.2
+
   const sheetStr = require('fs').readFileSync(`${__dirname}/${testFile}`)
   const sheetDoc = new DOMParser().parseFromString(sheetStr, "application/xml")
   const sheetElm = new IXmlElement(sheetDoc.childNodes[1])
@@ -136,7 +153,7 @@ function load(testFile) {
     i.moveToNext()
   }
 
-  return [sheet, sheetSteps]
+  return [scheduler, sheetSteps]
 }
 
 function tick() {
@@ -151,7 +168,7 @@ function tick() {
   return { result: `${time}s: ${steps}`, steps: `${steps}` }
 }
 
-function reset() {
+function reset(scheduler) {
   scheduler.reset()
   playback.mockClear()
   jest.clearAllTimers()
@@ -160,8 +177,9 @@ function reset() {
 }
 
 function scheduledSteps(playbackCalls) {
+  let calls = playbackCalls || playback.mock.calls
   let stepsPerCall = []
-  for (let call of playbackCalls) {
+  for (const call of calls) {
     const notes = call[1].map(n => {
       if (n.pitch) {
         const noteStr = 'C D EF G A B'[n.pitch.fundamentalNote]

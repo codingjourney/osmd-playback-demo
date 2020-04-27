@@ -72,7 +72,8 @@ export default class LazyPlaybackScheduler {
    * of different lengths). On the next invocation, we simply take
    * the earliest empty step and know that's where the current voice entries
    * belong. One side effect is that once the complete score is loaded,
-   * we have an extra empty step at the end which doesn't bother anyone.
+   * we have an extra empty step at the end which doesn't bother anyone
+   * and it's actually useful when looping at the end of the score.
    */
   loadNotes(currentVoiceEntries) {
     let step = this.steps.find(s => s.notes.length === 0) ||
@@ -81,9 +82,6 @@ export default class LazyPlaybackScheduler {
       for (let note of entry.notes) {
         step.notes.push(note);
         this._getOrCreateStep(Fraction.plus(step.position, note.length));
-        if (!step.length || step.length.gt(note.length)) {
-          step.length = note.length; // step's shortest note length
-        }
       }
     }
     this.steps.sort((a, b) => a.position.CompareTo(b.position));
@@ -103,22 +101,23 @@ export default class LazyPlaybackScheduler {
     const clockTime = this._round(this.audioContext.currentTime);
     const horizon = this._round(clockTime + this.SCHEDULED_INTERVAL);
     while (true) {
-      let stepIndex = this.startIndex;
       let stepTime = clockTime;
+      let stepIndex = this.startIndex;
       if (this.previous) {
-        stepIndex = this.previous.index + 1;
-        if (stepIndex === this.endIndex) {
-          if (!this.looping) break;
-          else stepIndex = this.startIndex;
-        }
-        const stepLength = this.previous.step.length.realValue * this.wholeNoteLength;
-        stepTime = this._round(this.previous.time + stepLength);
+        const nextIndex = this.previous.index + 1;
+        const length = Fraction.minus(
+          this.steps[nextIndex].position, this.previous.step.position);
+        stepTime = this._round(
+          this.previous.time + length.realValue * this.wholeNoteLength);
+        const endReached = nextIndex === this.endIndex;
+        if (endReached && !this.looping) break;
+        stepIndex = endReached ? this.startIndex : nextIndex;
       }
       if (stepTime >= horizon) break;
       const step = this.steps[stepIndex];
       const delay = this._round(stepTime - clockTime);
       const stopping = !this.looping && stepIndex === this.endIndex - 1;
-      if (delay < 0) console.warn(`Missed step ${stepIndex}!`);
+      if (delay < 0) console.warn(`Missed step ${stepIndex} by ${-delay}ms`);
       if (delay >= 0 || stopping) { // send stop signal even if late
         this.notePlaybackCallback(Math.max(0, delay), step.notes, stopping, stepIndex);
       }
