@@ -8,40 +8,19 @@
     </v-list>
   </v-navigation-drawer>
   <v-toolbar app>
-    <v-toolbar-side-icon @click="drawer = !drawer">
-      <v-icon>keyboard_arrow_{{drawer ? "left" : "right"}}</v-icon>
-    </v-toolbar-side-icon>
-    <!-- TODO move the following components back into PlaybackControls -->
-    <v-slider
-      v-if="this.pbEngine && this.pbEngine.iterationSteps > 0"
-      :value="this.pbEngine.currentIterationStep"
-      :min="0"
-      :max="this.pbEngine.iterationSteps"
-      :step="1"
-      @input="val => this.pbEngine.jumpToStep(val)"
-      class="progress-slider"
-    ></v-slider>
-    <v-btn
-      icon
-      @click="
-        pbEngine.state === 'PAUSED'
-          ? pbEngine.resume()
-          : pbEngine.play()
-      "
-      v-if="pbEngine.state !== 'PLAYING'"
-    >
-      <v-icon dark>play_arrow</v-icon>
-    </v-btn>
-    <v-btn v-else icon @click="pbEngine.pause()">
-      <v-icon dark>pause</v-icon>
-    </v-btn>
-    <v-btn icon @click="pbEngine.stop()">
-      <v-icon dark>stop</v-icon>
-    </v-btn>
+    <v-list flat>
+      <v-toolbar>
+        <v-toolbar-side-icon @click="drawer = !drawer">
+          <v-icon>keyboard_arrow_{{drawer ? "left" : "right"}}</v-icon>
+        </v-toolbar-side-icon>
+        <v-select :items="scores" :value="selectedScore" label="Lied auswählen" @change="scoreChanged" />
+      </v-toolbar>
+      <RangeControls :playbackEngine="pbEngine" />
+      <PlaybackControls :playbackEngine="pbEngine" :drawer="drawer" />
+    </v-list>
   </v-toolbar>
   <v-content>
-    <v-container fluid>
-      <v-select :items="scores" label="Lied auswählen" @change="scoreChanged" />
+    <v-container fluid style="padding-top: 10em">
       <Score @osmdInit="osmdInit" @scoreLoaded="scoreLoaded"  :score="selectedScore"/>
     </v-container>
   </v-content>
@@ -51,6 +30,7 @@
 <script>
 import PlaybackSidebar from "./components/PlaybackSidebar";
 import PlaybackControls from "./components/PlaybackControls.vue";
+import RangeControls from "./components/RangeControls.vue";
 import Score from "./components/Score";
 
 import scores from "./scores";
@@ -63,7 +43,8 @@ export default {
     osmd: null,
     Score,
     PlaybackSidebar,
-    PlaybackControls
+    PlaybackControls,
+    RangeControls
   },
   data() {
     return {
