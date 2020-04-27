@@ -35,17 +35,20 @@ export default class LazyPlaybackScheduler {
   }
 
   start(startIndex, endIndex, looping) {
-    this.startIndex = startIndex;
-    this.endIndex = endIndex;
-    this.looping = looping;
+    this.startIndex = startIndex || 0;
+    this.endIndex = endIndex || this.steps.length - 1;
+    this.looping = looping || false;
     this.resume();
   }
 
   pause() {
-    this._pauseAt(this.previous.index);
+    this._pauseAt(this.previous ? this.previous.index : 0);
   }
 
   resume() {
+    this.startIndex = this.startIndex || 0;
+    this.endIndex = this.endIndex || this.steps.length - 1;
+    this.looping = this.looping || false;
     this.playing = true;
     this._scheduleNextSteps();
     this.clock = setInterval(
@@ -58,7 +61,20 @@ export default class LazyPlaybackScheduler {
   }
 
   setIterationStep(index) {
-    
+    this.reset();
+    if (index > 0) {
+      const step = this.steps[index];
+      const prev = this.steps[index - 1];
+      const clockTime = this.audioContext.currentTime;
+      const distance = Fraction.minus(step.position, prev.position);
+      const time = this._round(clockTime - distance.realValue * this.wholeNoteLength);
+      this.previous = { index: index - 1, step: prev, time: time }
+    }
+  }
+
+  setRange(range) {
+    this.startIndex = range[0];
+    this.endIndex = range[1];
   }
 
   /*
@@ -67,7 +83,7 @@ export default class LazyPlaybackScheduler {
    * relies on the sequence being perfectly dense, i.e. every note or rest
    * is immediately followed by another one (think of a voice as a sequence
    * of symbols, like characters in a string). So each time we add a note
-   * to a step we prepare an empty step right after it (several such steps
+   * to a step we prepare an empty step right after that note (several such steps
    * may be created during one invocation if the current step contains notes
    * of different lengths). On the next invocation, we simply take
    * the earliest empty step and know that's where the current voice entries
@@ -119,7 +135,7 @@ export default class LazyPlaybackScheduler {
       const stopping = !this.looping && stepIndex === this.endIndex - 1;
       if (delay < 0) console.warn(`Missed step ${stepIndex} by ${-delay}ms`);
       if (delay >= 0 || stopping) { // send stop signal even if late
-        this.notePlaybackCallback(Math.max(0, delay), step.notes, stopping, stepIndex);
+        this.notePlaybackCallback(Math.max(0, delay), step.notes, stepIndex, stopping);
       }
       this.previous = { step: step, index: stepIndex, time: stepTime }
     }

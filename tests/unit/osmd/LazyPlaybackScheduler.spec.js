@@ -73,6 +73,10 @@ describe('partial playback - steps 1 through 4', () => {
 })
 
 describe('pause and resume', () => {
+  it('does not crash when pause() is called on a fresh scheduler', () => {
+    reset(scheduler)
+    scheduler.pause()
+  })
   it('shuts down the clock on pause', () => {
     reset(scheduler)
     scheduler.wholeNoteLength = 0.8 // steps: 0, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8
@@ -91,6 +95,32 @@ describe('pause and resume', () => {
     expect(tick().result).toBe('0.5s: C5 in 0.1s')
     expect(tick().result).toBe('0.6s: R in 0.1s')
     expect(tick().result).toBe('0.7s: G5+G4+E4 in 0.1s and STOP')
+  })
+})
+
+describe('jump to step', () => {
+  it('works without regular playback start', () => {
+    reset(scheduler)
+    scheduler.wholeNoteLength = 0.8 // steps: 0, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8
+    scheduler.setIterationStep(2)
+    scheduler.resume()
+    expect(scheduledSteps()).toBe('E5 in 0s; R in 0.1s')
+    expect(tick().result).toBe('0.1s: C5 in 0.1s')
+  })
+  it('causes a pause when done during playback', () => {
+    expect(scheduler.playing).toBe(true)
+    scheduler.setIterationStep(1)
+    expect(scheduler.playing).toBe(false)
+  })
+  it('works the same after a pause as before playback start', () => {
+    playback.mockReset()
+    scheduler.resume()
+    expect(scheduledSteps()).toBe('D5 in 0s; E5 in 0.1s')
+    expect(tick().result).toBe('0.2s: R in 0.1s')
+    scheduler.setIterationStep(6)
+    playback.mockReset()
+    scheduler.resume()
+    expect(scheduledSteps()).toBe('G5+G4+E4 in 0s and STOP')
   })
 })
 
@@ -190,7 +220,7 @@ function scheduledSteps(playbackCalls) {
       }
     })
     const delay = round(call[0])
-    const stopFlag = call[2] ? ' and STOP' : ''
+    const stopFlag = call[3] ? ' and STOP' : ''
     stepsPerCall.push(`${notes.join('+')} in ${delay}s${stopFlag}`)
   }
   return stepsPerCall.join('; ') || '-'

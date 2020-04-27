@@ -23,6 +23,9 @@ export default class PlaybackEngine {
 
     this.iterationSteps = 0;
     this.currentIterationStep = 0;
+    this.startStep = 0;
+    this.stopStep = 0;
+    this.looping = false;
 
     this.timeoutHandles = [];
 
@@ -64,7 +67,7 @@ export default class PlaybackEngine {
     this.cursor.show();
 
     this.state = playbackStates.PLAYING;
-    this.scheduler.start(0, this.iterationSteps, false);
+    this.scheduler.start(this.startStep, this.stopStep, this.looping);
   }
 
   async stop() {
@@ -120,6 +123,22 @@ export default class PlaybackEngine {
     if (this.scheduler) this.scheduler.wholeNoteLength = this.wholeNoteLength;
   }
 
+  toggleLooping() {
+    this.looping = !this.looping;
+    this.scheduler.looping = this.looping;
+  }
+
+  setRange(range) {
+    this.startStep = range[0];
+    this.stopStep = range[1];
+    this.scheduler.setRange(range);
+  }
+
+  restoreFullRange() {
+    this.startStep = 0;
+    this.stopStep = this.iterationSteps;
+  }
+
   _countAndSetIterationSteps() {
     this.cursor.reset();
     let steps = 0;
@@ -131,10 +150,12 @@ export default class PlaybackEngine {
       this.cursor.next();
     }
     this.iterationSteps = steps;
+    this.startStep = 0;
+    this.stopStep = steps;
     this.cursor.reset();
   }
 
-  _notePlaybackCallback(audioDelay, notes, finishing) {
+  _notePlaybackCallback(audioDelay, notes, stepIndex, stopping) {
     if (this.state !== playbackStates.PLAYING) return;
     let batch = this.voiceBank.createNoteBatch();
 
@@ -143,12 +164,15 @@ export default class PlaybackEngine {
       if (noteDuration !== 0) this.voiceBank.addNoteToBatch(batch, note, noteDuration);
     }
     let targetTime = this.ac.currentTime + audioDelay;
-    let postPlayCallback = finishing ? (() => this.stop()) : undefined;
+    let postPlayCallback = stopping ? (() => this.stop()) : undefined;
     this.voiceBank.scheduleNoteBatch(batch, targetTime, postPlayCallback);
 
     this.timeoutHandles.push(
-      setTimeout(() => this._iterationCallback(), Math.max(0, audioDelay * 1000 - 40))
-    ); // Subtracting 40 milliseconds to compensate for update delay
+      setTimeout(
+        () => this._iterationCallback(stepIndex),
+        Math.max(0, audioDelay * 1000 - 40) // Subtracting 40ms to compensate for update delay
+      )
+    );
   }
 
   // Used to avoid duplicate cursor movements after a rapid pause/resume action
@@ -159,10 +183,19 @@ export default class PlaybackEngine {
     this.timeoutHandles = [];
   }
 
-  _iterationCallback() {
+  _iterationCallback(step) {
     if (this.state !== playbackStates.PLAYING) return;
-    if (this.currentIterationStep > 0) this.cursor.next();
-    ++this.currentIterationStep;
+    if (this.currentIterationStep > step) {
+      console.log('Loop back to ' + step);
+      this.cursor.hide();
+      this.cursor.reset();
+      this.currentIterationStep = 0;
+    }
+    while (this.currentIterationStep < step) {
+      this.cursor.next();
+      ++this.currentIterationStep;
+    }
+    this.cursor.show();
   }
 
   _getNoteDuration(note) {
