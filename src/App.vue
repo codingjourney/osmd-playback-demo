@@ -83,6 +83,7 @@ export default {
   -moz-osx-font-smoothing: grayscale;
   color: #2c3e50;
 }
+.progress-slider { padding: 0 1em 0 1em }
 // centers progress slider vertically within the toolbar
 .progress-slider .v-input__control { flex-direction: inherit; flex-wrap: inherit }
 .progress-slider .v-input__slot { margin-bottom: inherit }

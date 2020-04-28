@@ -39,6 +39,10 @@ export default class PlaybackEngine {
     return (60 / this.bpm) * this.denominator;
   }
 
+  get loopingStateDescription() { // TODO i18n
+    return this.looping ? 'Wird ständig wiederholt' : 'Wird einmal durchgespielt';
+  }
+
   loadScore(osmd) {
     this.init(osmd.sheet, osmd.cursor)
   }
@@ -124,9 +128,9 @@ export default class PlaybackEngine {
     if (this.scheduler) this.scheduler.wholeNoteLength = this.wholeNoteLength;
   }
 
-  toggleLooping() {
-    this.looping = !this.looping;
-    this.scheduler.looping = this.looping;
+  setLooping(looping) {
+    this.looping = looping;
+    this.scheduler.looping = looping;
   }
 
   setRange(range) {

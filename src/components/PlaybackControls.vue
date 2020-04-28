@@ -1,12 +1,14 @@
 <template>
-  <v-toolbar>
+  <v-toolbar
+    v-if="this.playbackEngine && this.playbackEngine.iterationSteps > 0">
+    <v-label>Position</v-label>
     <v-slider
-      v-if="this.playbackEngine && this.playbackEngine.iterationSteps > 0"
       :value="this.playbackEngine.currentIterationStep"
       :min="this.playbackEngine.startStep"
       :max="this.playbackEngine.stopStep"
       :step="1"
       @input="val => this.playbackEngine.jumpToStep(val)"
+      thumb-label="true"
       class="progress-slider"
     ></v-slider>
     <v-btn
