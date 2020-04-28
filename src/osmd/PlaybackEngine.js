@@ -140,8 +140,7 @@ export default class PlaybackEngine {
   }
 
   restoreFullRange() {
-    this.startStep = 0;
-    this.stopStep = this.iterationSteps;
+    this.setRange([0, this.iterationSteps]);
   }
 
   _countAndSetIterationSteps() {
