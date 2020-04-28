@@ -1,24 +1,16 @@
-***
-⚠️ **No further development will be done in this repository, please follow [https://github.com/jimutt/osmd-audio-player](https://github.com/jimutt/osmd-audio-player) for an improved and more user friendly OSMD audio playback extension.** 
-⚠️
-***
-
-# OSMD Playback Demo
-Demo available on [https://heuristic-williams-b11ca6.netlify.com/](https://heuristic-williams-b11ca6.netlify.com/)
+# Singkreis
+Demo available at [http://music.journey.sk/](http://music.journey.sk/) (sorry, no HTTPS yet).
 
 ## About
 
-This is a proof of concept application enabling audio playback for [OSMD](https://github.com/opensheetmusicdisplay/opensheetmusicdisplay) scores. It features a simplistic note scheduler and utilizes [soundfont-player](https://github.com/danigb/soundfont-player) for the actual audio playback.
+*Singkreis* is a somewhat archaic German word for a small choir, usually consisting of amateur singers. This application is intended to help choir members practice their repertoire outside choir practice sessions. It displays a score and plays back its notes. The user can configure individual voices, as well as set tempo, playback range and turn loop mode on/off.
 
-The overall code quality is poor and has only been put together for personal prototyping.
+This work is based on [Jimmy Utterström](https://jimmyutterstrom.com/)'s [proof of concept](https://github.com/jimutt/osmd-playback-demo) application enabling audio playback for [OSMD](https://github.com/opensheetmusicdisplay/opensheetmusicdisplay) scores (Jimmy is now working on a [more polished player](https://github.com/jimutt/osmd-audio-player)).
 
 ## Limitations
 
-At its current state the playback functionality is very basic, it does not interprate dynamics and has no way to handle for example grace notes. In addition to the limited features the current build also contains the following bugs (along with various other misbehaviors...):
+At its current state the interpretation of the score is very basic - dynamics, grace notes and even repetitions are ignored. As for bugs, the cursor basically doesn't work. There are also some issues with tie lengths.
 
-- Occasional cursor desynchronization when using progress indicator to change cursor location in score.
-- Some issues with tie lengths
+## Implementation
 
-## Structure
-
-The demo site is built with Vue.js and Vuetify. Run `npm run serve` to build the project and run it on a local dev server. The audio playback and scheduling logic can be found in the `src/osmd` directory.
+The application is built with Vue.js and Vuetify. Run `npm run serve` to build the project and run it on a local dev server.
