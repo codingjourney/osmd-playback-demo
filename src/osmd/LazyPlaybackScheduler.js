@@ -42,7 +42,9 @@ export default class LazyPlaybackScheduler {
   }
 
   pause() {
-    this._pauseAt(this.previous ? this.previous.index : 0);
+    this.playing = false;
+    clearInterval(this.clock);
+    this.clock = null;
   }
 
   resume() {
@@ -56,7 +58,7 @@ export default class LazyPlaybackScheduler {
   }
 
   reset() {
-    this._pauseAt(null);
+    this.pause();
     this.previous = null;
   }
 
@@ -139,12 +141,6 @@ export default class LazyPlaybackScheduler {
       }
       this.previous = { step: step, index: stepIndex, time: stepTime }
     }
-  }
-  
-  _pauseAt(stepIndex) {
-    this.playing = false;
-    clearInterval(this.clock);
-    this.clock = null;
   }
   
   _round(num) {
