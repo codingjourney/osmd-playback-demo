@@ -107,12 +107,13 @@ describe('jump to step', () => {
     expect(scheduledSteps()).toBe('E5 in 0s; R in 0.1s')
     expect(tick().result).toBe('0.1s: C5 in 0.1s')
   })
-  it('causes a pause when done during playback', () => {
+  it('does not pause when done during playback', () => {
     expect(scheduler.playing).toBe(true)
     scheduler.setIterationStep(1)
-    expect(scheduler.playing).toBe(false)
+    expect(scheduler.playing).toBe(true)
   })
   it('works the same after a pause as before playback start', () => {
+    scheduler.pause()
     playback.mockReset()
     scheduler.resume()
     expect(scheduledSteps()).toBe('D5 in 0s; E5 in 0.1s')

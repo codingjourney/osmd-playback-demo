@@ -35,6 +35,7 @@ export default class LazyPlaybackScheduler {
   }
 
   start(startIndex, endIndex, looping) {
+    console.log('start')
     this.startIndex = startIndex || 0;
     this.endIndex = endIndex || this.steps.length - 1;
     this.looping = looping || false;
@@ -63,14 +64,17 @@ export default class LazyPlaybackScheduler {
   }
 
   setIterationStep(index) {
-    this.reset();
     if (index > 0) {
       const step = this.steps[index];
       const prev = this.steps[index - 1];
       const clockTime = this.audioContext.currentTime;
       const distance = Fraction.minus(step.position, prev.position);
-      const time = this._round(clockTime - distance.realValue * this.wholeNoteLength);
+      const timeDelta = distance.realValue * this.wholeNoteLength
+      const time = this._round(clockTime - timeDelta) + this.INIT_DELAY;
       this.previous = { index: index - 1, step: prev, time: time }
+    } else {
+      this.reset();
+      this.resume();
     }
   }
 

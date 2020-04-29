@@ -68,9 +68,6 @@ export default class PlaybackEngine {
   async play() {
     await this.voiceBank.loadInstruments();
     await this.ac.resume();
-
-    this.cursor.show();
-
     this.state = playbackStates.PLAYING;
     this.scheduler.start(this.startStep, this.stopStep, this.looping);
   }
@@ -81,41 +78,28 @@ export default class PlaybackEngine {
     this._clearTimeouts();
     this.scheduler.reset();
     this.cursor.reset();
-    this.currentIterationStep = 0;
     this.cursor.hide();
+    this.ac.suspend();
+    this.currentIterationStep = this.startStep;
   }
 
   pause() {
     this.state = playbackStates.PAUSED;
     this.ac.suspend();
     this.voiceBank.stopInstruments();
-    this.scheduler.setIterationStep(this.currentIterationStep);
     this.scheduler.pause();
     this._clearTimeouts();
   }
-
+  
   resume() {
     this.state = playbackStates.PLAYING;
     this.scheduler.resume();
     this.ac.resume();
   }
-
+  
   jumpToStep(step) {
-    this.pause();
-    console.log('Jump to step ' + step);
-    if (this.currentIterationStep > step) {
-      this.cursor.hide();
-      this.cursor.reset();
-      this.currentIterationStep = 0;
-    }
-    while (this.currentIterationStep < step) {
-      this.cursor.next();
-      ++this.currentIterationStep;
-    }
-    let schedulerStep = this.currentIterationStep;
-    if (this.currentIterationStep > 0 && this.currentIterationStep < this.iterationSteps) ++schedulerStep;
-    this.scheduler.setIterationStep(schedulerStep);
-    this.cursor.show();
+    this._moveCursorTo(step);
+    this.scheduler.setIterationStep(step);
   }
 
   async setInstrument(voice, instrumentId) {
@@ -157,6 +141,7 @@ export default class PlaybackEngine {
     this.startStep = 0;
     this.stopStep = steps;
     this.cursor.reset();
+    this.cursor.hide();
   }
 
   _notePlaybackCallback(audioDelay, notes, stepIndex, stopping) {
@@ -189,17 +174,18 @@ export default class PlaybackEngine {
 
   _iterationCallback(step) {
     if (this.state !== playbackStates.PLAYING) return;
-    if (this.currentIterationStep > step) {
-      console.log('Loop back to ' + step);
-      this.cursor.hide();
-      this.cursor.reset();
+    this._moveCursorTo(step);
+  }
+
+  _moveCursorTo(step) {
+    if (this.currentIterationStep > step || this.cursor.Hidden) {
+      this.cursor.show();
       this.currentIterationStep = 0;
     }
     while (this.currentIterationStep < step) {
       this.cursor.next();
       ++this.currentIterationStep;
     }
-    this.cursor.show();
   }
 
   _getNoteDuration(note) {
